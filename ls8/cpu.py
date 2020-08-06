@@ -17,6 +17,8 @@ class CPU:
       0b10000010: self.handle_ldi,
       0b01000111: self.handle_prn,
       0b10100010: self.handle_mul,
+      0b01000101: self.handle_push,
+      0b01000110: self.handle_pop,
     }
 
   def load(self, path):
@@ -98,3 +100,11 @@ class CPU:
 
   def handle_mul(self, reg_a, reg_b):
     self.alu('MUL', reg_a, reg_b)
+
+  def handle_pop(self, reg_a):
+    self.reg[reg_a] = self.ram_read(self.reg[7])
+    self.reg[7] += 1
+
+  def handle_push(self, reg_a):
+    self.reg[7] -= 1
+    self.ram_write(self.reg[reg_a], self.reg[7])
