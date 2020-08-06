@@ -16,9 +16,12 @@ class CPU:
       0b00000001: self.handle_hlt,
       0b10000010: self.handle_ldi,
       0b01000111: self.handle_prn,
+      0b10100000: self.handle_add,
       0b10100010: self.handle_mul,
       0b01000101: self.handle_push,
       0b01000110: self.handle_pop,
+      0b01010000: self.handle_call,
+      0b00010001: self.handle_ret,
     }
 
   def load(self, path):
@@ -65,14 +68,16 @@ class CPU:
     """Run the CPU."""
     while True:
       ir = self.ram_read(self.pc)
+      operand_a = self.ram_read(self.pc + 1)
+      operand_b = self.ram_read(self.pc + 2)
       operands = ir >> 6
+      self.pc += 1 + operands
       if operands == 0:
         self.OP_CODES[ir]()
       elif operands == 1:
-        self.OP_CODES[ir](self.ram_read(self.pc + 1))
+        self.OP_CODES[ir](operand_a)
       else:
-        self.OP_CODES[ir](self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-      self.pc += 1 + operands
+        self.OP_CODES[ir](operand_a, operand_b)
 
   def ram_read(self, mar):
     """
@@ -98,6 +103,9 @@ class CPU:
   def handle_prn(self, reg_a):
     print(self.reg[reg_a])
 
+  def handle_add(self, reg_a, reg_b):
+    self.alu('ADD', reg_a, reg_b)
+
   def handle_mul(self, reg_a, reg_b):
     self.alu('MUL', reg_a, reg_b)
 
@@ -108,3 +116,12 @@ class CPU:
   def handle_push(self, reg_a):
     self.reg[7] -= 1
     self.ram_write(self.reg[reg_a], self.reg[7])
+
+  def handle_call(self, reg_a):
+    self.reg[7] -= 1
+    self.ram_write(self.pc, self.reg[7])
+    self.pc = self.reg[reg_a]
+
+  def handle_ret(self):
+    self.pc = self.ram_read(self.reg[7])
+    self.reg[7] += 1
