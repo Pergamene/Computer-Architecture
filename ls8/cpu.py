@@ -8,8 +8,15 @@ class CPU:
   def __init__(self):
     """Construct a new CPU."""
     self.ram = [0] * 256
-    self.reg = [0] * 256
-    self.pc_reg = [0] * 8
+    self.reg = [0, 0, 0, 0, 0, 0, 0, 0xf4]
+    self.pc = 0
+    self.fl = 0
+
+    self.OP_CODES = {
+      0b00000001: self.handle_hlt,
+      0b10000010: self.handle_ldi,
+      0b01000111: self.handle_prn,
+    }
 
   def load(self):
     """Load a program into memory."""
@@ -55,20 +62,37 @@ class CPU:
 
   def run(self):
     """Run the CPU."""
-    ir = self.ram_read(self.pc)
-    operand_a = self.ram_read(self.pc + 1)
-    operand_b = self.ram_read(self.pc + 2)
+    while True:
+      ir = self.ram_read(self.pc)
+      operands = ir >> 6
+      if operands == 0:
+        self.OP_CODES[ir]()
+      elif operands == 1:
+        self.OP_CODES[ir](self.ram_read(self.pc + 1))
+      else:
+        self.OP_CODES[ir](self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+      self.pc += 1 + operands
 
   def ram_read(self, mar):
     """
     Accept the address to read and return the value stored there.
     MAR == Memory Address Register - address that is being read or written to.
     """
-    pass
+    return self.ram[mar]
 
   def ram_write(self, mdr, mar):
     """
     Accept the value to write, and the address to write it to.
     MDR == Memory Data Register - data that was read or the data to write.
+    MAR == Memory Address Register - address that is being read or written to.
     """
-    pass
+    self.ram[mar] = mdr
+
+  def handle_hlt(self):
+    sys.exit(0)
+
+  def handle_ldi(self, reg_a, immediate):
+    self.reg[reg_a] = immediate
+
+  def handle_prn(self, reg_a):
+    print(self.reg[reg_a])
