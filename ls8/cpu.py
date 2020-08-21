@@ -22,6 +22,10 @@ class CPU:
       0b01000110: self.handle_pop,
       0b01010000: self.handle_call,
       0b00010001: self.handle_ret,
+      0b01010100: self.handle_jmp,
+      0b10100111: self.handle_cmp,
+      0b01010101: self.handle_jeq,
+      0b01010110: self.handle_jne,
     }
 
   def load(self, path):
@@ -40,10 +44,18 @@ class CPU:
 
   def alu(self, op, reg_a, reg_b):
     """ALU operations."""
-    if op == "ADD":
+    if op == 'ADD':
       self.reg[reg_a] += self.reg[reg_b]
-    elif op == "MUL":
+    elif op == 'MUL':
       self.reg[reg_a] *= self.reg[reg_b]
+    elif op == 'CMP':
+      res = self.reg[reg_a] - self.reg[reg_b]
+      if res < 0:
+        self.fl = 0b00000100
+      elif res > 0:
+        self.fl = 0b00000010
+      else:
+        self.fl = 0b00000001
     else:
       raise Exception("Unsupported ALU operation")
 
@@ -125,3 +137,18 @@ class CPU:
   def handle_ret(self):
     self.pc = self.ram_read(self.reg[7])
     self.reg[7] += 1
+
+  def handle_jmp(self, reg_a):
+    self.pc = self.reg[reg_a]
+
+  def handle_cmp(self, reg_a, reg_b):
+    self.alu('CMP', reg_a, reg_b)
+
+  def handle_jeq(self, reg_a):
+    if self.fl == 0b00000001:
+      self.handle_jmp(reg_a)
+  
+  def handle_jne(self, reg_a):
+    if self.fl != 0b00000001:
+      self.handle_jmp(reg_a)
+    
